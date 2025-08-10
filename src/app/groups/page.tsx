@@ -1,23 +1,22 @@
-import { prisma } from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/auth'
-import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import GroupList from '@/components/GroupList'
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import GroupList from "@/components/GroupList";
 
 export default async function GroupsPage() {
-  const user = await getCurrentUser()
-  console.log('Current user:', user)
+  const user = await getCurrentUser();
   if (!user) {
-    redirect('/auth/login')
+    redirect("/auth/login");
   }
 
   const groups = await prisma.group.findMany({
     where: {
       members: {
         some: {
-          userId: user.userId
-        }
-      }
+          userId: user.userId,
+        },
+      },
     },
     include: {
       creator: {
@@ -25,8 +24,8 @@ export default async function GroupsPage() {
           id: true,
           username: true,
           email: true,
-          createdAt: true
-        }
+          createdAt: true,
+        },
       },
       members: {
         include: {
@@ -35,57 +34,53 @@ export default async function GroupsPage() {
               id: true,
               username: true,
               email: true,
-              createdAt: true
-            }
-          }
-        }
+              createdAt: true,
+            },
+          },
+        },
       },
-      llms: true
+      llms: true,
     },
     orderBy: {
-      updatedAt: 'desc'
-    }
-  })
+      updatedAt: "desc",
+    },
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto py-8 px-4">
-        <div className="flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-blue-100 relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-72 h-72 bg-blue-300 opacity-20 rounded-full filter blur-3xl animate-float-slow"></div>
+      <div className="absolute bottom-0 right-0 w-72 h-72 bg-indigo-400 opacity-20 rounded-full filter blur-2xl animate-float-slow animation-delay-2000"></div>
+
+      <div className="max-w-5xl mx-auto py-16 px-6 relative z-10">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Welcome back, {user.username}!
+            <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
+              👋 Hey, {user.username}!
             </h1>
-            <p className="text-gray-600 mt-2">
-              Manage your groups and chat with AI assistants
+            <p className="text-gray-600 mt-3 text-lg">
+              Organize your world. Manage groups. Chat with intelligent
+              assistants.
             </p>
           </div>
           <Link
             href="/groups/create"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg hover:scale-105 transform transition duration-300"
           >
-            Create Group
+            + Create New Group
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-semibold">Your Groups</h2>
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
+              Your Groups
+            </h2>
           </div>
           <div className="p-6">
             <GroupList groups={groups} />
           </div>
         </div>
-
-        <div className="mt-8 bg-blue-50 rounded-lg p-6">
-          <h3 className="font-semibold text-blue-900 mb-3">Getting Started</h3>
-          <div className="space-y-2 text-sm text-blue-800">
-            <p>• Create a group and add AI assistants from various models</p>
-            <p>• Use @all_llm to get responses from all LLMs in the group</p>
-            <p>• Mention specific LLMs by name (e.g., @Assistant1) for targeted responses</p>
-            <p>• Invite other users to collaborate in group conversations</p>
-          </div>
-        </div>
       </div>
     </div>
-  )
+  );
 }

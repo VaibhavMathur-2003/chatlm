@@ -22,6 +22,7 @@ export default function GroupChatPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [members, setMembers] = useState<any[]>([]);
@@ -35,30 +36,27 @@ export default function GroupChatPage() {
   }, [messages]);
 
   useEffect(() => {
-    console.log("hi")
     const initializeChat = async () => {
       try {
-        // Get auth token from cookies
-        console.log(document.cookie);
+        
         const token = document.cookie
           .split("; ")
           .find((row) => row.startsWith("token="))
           ?.split("=")[1];
-        console.log("Auth token:", token);
 
         if (!token) {
           router.push("/auth/login");
           return;
         }
 
-        // Initialize socket connection
+        
         const socketInstance = getSocket(token);
         setSocket(socketInstance);
 
-        // Join the group room
+        
         socketInstance.emit("join_group", groupId);
 
-        // Listen for new messages from socket
+        
         socketInstance.on("new_message", (message: Message) => {
           console.log("Received new message via socket:", message);
           setMessages((prev) => {
@@ -70,40 +68,40 @@ export default function GroupChatPage() {
           });
         });
 
-        // Handle socket connection errors
+        
         socketInstance.on("connect_error", (error) => {
           console.error("Socket connection error:", error);
         });
 
-        // Fetch group data
+        
         const groupResponse = await fetch(`/api/groups/${groupId}`);
         if (groupResponse.ok) {
           const groupData = await groupResponse.json();
           setGroup(groupData);
         }
 
-        // Fetch messages
+        
         const messagesResponse = await fetch(`/api/groups/${groupId}/messages`);
         if (messagesResponse.ok) {
           const messagesData = await messagesResponse.json();
           setMessages(messagesData);
         }
 
-        // Fetch LLMs
+        
         const llmsResponse = await fetch(`/api/groups/${groupId}/llms`);
         if (llmsResponse.ok) {
           const llmsData = await llmsResponse.json();
           setLlms(llmsData);
         }
 
-        // Fetch members
+        
         const membersResponse = await fetch(`/api/groups/${groupId}/members`);
         if (membersResponse.ok) {
           const membersData = await membersResponse.json();
           setMembers(membersData);
         }
 
-        // Get current user info from token
+        
         const payload = JSON.parse(atob(token.split(".")[1]));
         setCurrentUser(payload);
 
@@ -244,67 +242,117 @@ export default function GroupChatPage() {
   }
 
   return (
-    <div className="h-screen flex">
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="bg-white border-b p-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-semibold">{group.name}</h1>
-            <p className="text-sm text-gray-600">
-              {group.members.length} members • {llms.length} LLMs
-            </p>
-          </div>
-          <Link
-            href="/groups"
-            className="text-blue-600 hover:text-blue-800 text-sm"
+    <div className="h-screen flex flex-col lg:flex-row bg-white">
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      <div
+        className={`fixed right-0 top-0 h-full w-80 bg-white z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
+          sidebarOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-lg font-semibold">Group Info</h2>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500"
           >
-            ← Back to Groups
-          </Link>
+            ✕
+          </button>
         </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
-          {messages.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
-              <p>No messages yet. Start the conversation!</p>
-              {llms.length === 0 && (
-                <p className="mt-2 text-sm">
-                  Add some LLMs to the group to chat with AI assistants.
-                </p>
-              )}
-            </div>
-          ) : (
-            messages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                message={message}
-                currentUserId={currentUser.userId}
-              />
-            ))
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Chat Input */}
-        <ChatInput onSendMessage={handleSendMessage} />
-      </div>
-
-      {/* Sidebar */}
-      <div className="w-80 border-l bg-gray-50">
-        <LLMList
-          llms={llms}
-          groupId={groupId}
-          onAddLLM={handleAddLLM}
-          onRemoveLLM={handleRemoveLLM}
-        />
+        <div className="h-full bg-gray-50 flex flex-col">
+      <LLMList llms={llms} onAddLLM={handleAddLLM} onRemoveLLM={handleRemoveLLM} />
+      <div className="flex-1">
         <MemberList
           members={members}
-          groupId={groupId}
           onAddMember={handleAddMember}
           onRemoveMember={handleRemoveMember}
           currentUserId={currentUser.userId}
         />
+      </div>
+    </div>
+      </div>
+
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="bg-white border-b border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <a
+                href="/groups"
+                className="lg:hidden w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-600"
+              >
+                ←
+              </a>
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:block w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="text-blue-600 text-sm">💬</span>
+                </div>
+                <div>
+                  <h1 className="text-lg sm:text-xl font-semibold text-gray-900">{group.name}</h1>
+                  <p className="text-sm text-gray-600">
+                    {group.members.length} members • {llms.length} LLMs
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                ☰
+              </button>
+              <a
+                href="/groups"
+                className="hidden lg:flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
+              >
+                <span>←</span>
+                Back to Groups
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-4 max-w-4xl mx-auto">
+            {messages.length === 0 ? (
+              <div className="text-center text-gray-500 py-12">
+                <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                  <span className="text-2xl">💬</span>
+                </div>
+                <p className="text-lg mb-2 text-gray-700">No messages yet</p>
+                <p className="text-sm">Start the conversation!</p>
+                {llms.length === 0 && (
+                  <div className="mt-4 p-3 bg-blue-50 text-blue-700 rounded-lg inline-block text-sm">
+                    Add some LLMs to the group to chat with AI assistants.
+                  </div>
+                )}
+              </div>
+            ) : (
+              messages.map((message) => (
+                <ChatMessage key={message.id} message={message} currentUserId={currentUser.userId} />
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        <ChatInput onSendMessage={handleSendMessage} />
+      </div>
+
+      <div className="hidden lg:block w-80 border-l border-gray-200">
+        <div className="h-full bg-gray-50 flex flex-col">
+      <LLMList llms={llms} onAddLLM={handleAddLLM} onRemoveLLM={handleRemoveLLM} />
+      <div className="flex-1">
+        <MemberList
+          members={members}
+          onAddMember={handleAddMember}
+          onRemoveMember={handleRemoveMember}
+          currentUserId={currentUser.userId}
+        />
+      </div>
+    </div>
       </div>
     </div>
   );

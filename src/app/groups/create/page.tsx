@@ -101,17 +101,7 @@ export default function CreateGroupPage() {
               />
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-md">
-              <h3 className="text-sm font-medium text-blue-900 mb-2">Next Steps</h3>
-              <p className="text-sm text-blue-800">
-                After creating your group, youll be able to:
-              </p>
-              <ul className="text-sm text-blue-800 mt-2 space-y-1 list-disc list-inside">
-                <li>Add AI assistants with different models</li>
-                <li>Invite other users to join</li>
-                <li>Start chatting with @mentions</li>
-              </ul>
-            </div>
+           
 
             <div className="flex space-x-4">
               <Link
